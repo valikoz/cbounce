@@ -54,15 +54,33 @@ int main(int argc, char **argv)
         }
     }
 
+    if (1) {
+        /* Static build. */
+        strv_meta(cmd)->len = 0;
+        strv_push(&cmd, "cc");
+        strv_push(&cmd, "-o");
+        strv_push(&cmd, "./main");
+        strv_push(&cmd, "main.c");
+        /* strv_push(&cmd, "-static"); */
+        strv_push(&cmd, "-DSTATIC_BUILD");
+        cmd_append_cflags(cmd);
+        strv_push(&cmd, "-l:libraylib.a");
+        if (!cmd_exec_child(cmd))
+            return(1);
+        return 0;
+    }
+
     /* Build the dll. */
     strv_meta(cmd)->len = 0;
     strv_push(&cmd, "cc");
     strv_push(&cmd, "-o");
     strv_push(&cmd, "./game.so");
-    strv_push(&cmd, "game.c");
+    strv_push(&cmd, "main.c");
+    strv_push(&cmd, "-DGAME_SHARED");
     strv_push(&cmd, "-fPIC");
     strv_push(&cmd, "-shared");
     cmd_append_cflags(cmd);
+    strv_push(&cmd, "-lraylib");
 
     if (!cmd_exec_child(cmd))
         return(1);
@@ -75,6 +93,7 @@ int main(int argc, char **argv)
     strv_push(&cmd, "main.c");
     strv_push(&cmd, "-Wl,-rpath=./");
     cmd_append_cflags(cmd);
+    strv_push(&cmd, "-lraylib");
 
     if (!cmd_exec_child(cmd))
         return(1);
@@ -90,16 +109,15 @@ void cmd_append_cflags(char **cmd)
     strv_push(&cmd, "-g");
     strv_push(&cmd, "-I/usr/local/include");
     strv_push(&cmd, "-L/usr/local/lib");
+    strv_push(&cmd, "-I./raylib/raylib-6.2_linux_amd64/include");
+    strv_push(&cmd, "-L./raylib/raylib-6.2_linux_amd64/lib");
+    strv_push(&cmd, "-Wl,-rpath=./raylib/raylib-6.2_linux_amd64/lib");
     strv_push(&cmd, "-lGL");
     strv_push(&cmd, "-lm");
     strv_push(&cmd, "-lpthread");
     strv_push(&cmd, "-ldl");
     strv_push(&cmd, "-lrt");
     strv_push(&cmd, "-lX11");
-    strv_push(&cmd, "-I./raylib/raylib-6.2_linux_amd64/include");
-    strv_push(&cmd, "-L./raylib/raylib-6.2_linux_amd64/lib");
-    strv_push(&cmd, "-Wl,-rpath=./raylib/raylib-6.2_linux_amd64/lib");
-    strv_push(&cmd, "-lraylib");
 }
 
 int cmd_exec_child(char **cmd)

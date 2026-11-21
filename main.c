@@ -1,23 +1,22 @@
 #include <stdio.h>
 #include <dlfcn.h>
 #include <raylib.h>
+#include <stdbool.h>
 
-#define GAME_COMMON
-#include "game.h"
+#include "game.c"
 
+#ifndef GAME_SHARED              /* Build dynamic library. */
+
+#ifdef STATIC_BUILD
+#define reload_game() true
+#else
 #define X(name, ret, ...) ret (*name)(__VA_ARGS__) = NULL;
 SHARED_FUNCTIONS
 #undef X
-
-#if defined(__APPLE__)
-const char *game_path = "./game.dylib";
-#else
-const char *game_path = "./game.so";
-#endif
-void *game = NULL;
-
 bool reload_game()
 {
+    const char *game_path = "./game.so";
+    void *game = NULL;
     if (game != NULL)
         dlclose(game);
 
@@ -38,20 +37,21 @@ bool reload_game()
 
     return true;
 }
+#endif  /* STATIC_BUILD */
 
 int main(void)
 {
     if (!reload_game()) return 1;
 
     int factor        = 60;
-    int screen_width  = factor*24; // 96 px -> 24 px
-    int screen_height = factor*17; // 68 px -> 17 px
+    int screen_width  = factor*24; /* 96 px -> 24 px */
+    int screen_height = factor*17; /* 68 px -> 17 px */
 
     SetConfigFlags(FLAG_VSYNC_HINT);
-    // SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_ALWAYS_RUN);
+    /* SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_ALWAYS_RUN); */
 
-    // SetWindowMinSize(screen_width/4.0f, screen_height/4.0f);
-    // SetWindowMaxSize(screen_width*4.0f, screen_height*4.0f);
+    /* SetWindowMinSize(screen_width/4.0f, screen_height/4.0f); */
+    /* SetWindowMaxSize(screen_width*4.0f, screen_height*4.0f); */
     InitWindow(screen_width, screen_height, "Bounce");
 
     {
@@ -60,7 +60,7 @@ int main(void)
         UnloadImage(game_icon);
     }
 
-    // SetExitKey(KEY_NULL);
+    /* SetExitKey(KEY_NULL); */
     SetTargetFPS(60);
 
     game_init();
@@ -86,3 +86,4 @@ int main(void)
 
     return 0;
 }
+#endif /* !GAME_SHARED */
