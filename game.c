@@ -12,7 +12,6 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 
 #include <raymath.h>
 
@@ -74,7 +73,7 @@ typedef enum {
     COUNT_TEXTURES,
 } Texture_Type;
 
-static_assert(COUNT_TEXTURES == 11, "The amount of textures has changed.");
+/* static_assert(COUNT_TEXTURES == 11, "The amount of textures has changed."); */
 static Texture2D textures[COUNT_TEXTURES];
 static const char *image_paths[COUNT_TEXTURES] = {
     [TX_BLOCK]                = "./assets/block.png",
@@ -218,12 +217,12 @@ static void load_assets(void)
         if (IsImageValid(image)) {
             textures[i] = LoadTextureFromImage(image);
             UnloadImage(image);
-            if (!IsTextureValid(textures[i])) assert(true && "Texture not valid.");
+            if (!IsTextureValid(textures[i])) assert(1 && "Texture not valid.");
         }
     }
 
     s->font = LoadFont("./assets/nokiafc22.ttf");
-    if (!IsFontValid(s->font)) assert(true && "Font is not valid.");
+    if (!IsFontValid(s->font)) assert(1 && "Font is not valid.");
 }
 
 static void unload_assets(void)
@@ -263,7 +262,7 @@ void game_init(void)
     memset(&s->input, 0, sizeof(bool)*sizeof(s->input));
     s->input.zoom = 0.0f;
 
-    s->win = false;
+    s->win = 0;
     s->count_rings = 0;
     s->count_checkpoints = 0;
     s->score = 0;
@@ -280,7 +279,7 @@ void game_reset(void)
     memset(&s->input, 0, sizeof(bool)*sizeof(s->input));
     s->input.zoom = 0.0f;
 
-    s->win = false;
+    s->win = 0;
     s->count_rings = 0;
     s->count_checkpoints = 0;
     s->score = 0;
@@ -402,7 +401,7 @@ void player_reset(Player *p)
 
 void player_reset_move(Player *p)
 {
-    p->was_deflated = false;
+    p->was_deflated = 0;
     p->freeze_time = 0.0f;
     p->direction = 1.0;
 
@@ -413,9 +412,9 @@ void player_reset_move(Player *p)
 
     p->velocity = (Vector2){ 0.0f, 0.0f };
 
-    p->isGrounded = false;
-    p->isJumping = false;
-    p->isFalling = false;
+    p->isGrounded = 0;
+    p->isJumping = 0;
+    p->isFalling = 0;
 }
 
 void camera_init(Camera2D *c) {
@@ -435,8 +434,8 @@ void input_update(Input *input)
     input->left =  (float)(IsKeyDown('H') || IsKeyDown('A') || IsKeyDown(KEY_LEFT));
     input->right = (float)(IsKeyDown('L') || IsKeyDown('D') || IsKeyDown(KEY_RIGHT));
 
-    if (IsKeyPressedOrDown(KEY_W) || IsKeyPressedOrDown(KEY_SPACE) || IsKeyPressedOrDown(KEY_K) || IsKeyPressedOrDown(KEY_UP)) input->jump = true;
-    else if (IsKeyPressedOrDown(KEY_W) || IsKeyReleased(KEY_SPACE) || IsKeyReleased(KEY_K) || IsKeyReleased(KEY_UP)) input->jump = false;
+    if (IsKeyPressedOrDown(KEY_W) || IsKeyPressedOrDown(KEY_SPACE) || IsKeyPressedOrDown(KEY_K) || IsKeyPressedOrDown(KEY_UP)) input->jump = 1;
+    else if (IsKeyPressedOrDown(KEY_W) || IsKeyReleased(KEY_SPACE) || IsKeyReleased(KEY_K) || IsKeyReleased(KEY_UP)) input->jump = 0;
 
     if (IsKeyPressed(KEY_MINUS)) {
         input->zoom -= 0.5f;
@@ -667,7 +666,7 @@ void GroundCheck(Player *p)
 {
     int x = (int)p->position.x;
     int y = (int)p->position.y + 1;
-    p->isGrounded = false;
+    p->isGrounded = 0;
 
     int x_corners[3];
 
@@ -679,13 +678,13 @@ void GroundCheck(Player *p)
     i = 0;
     do {
         switch(MapGetTileWorld(s->tiles, x_corners[i], y)) {
-            case BLOCK: p->isGrounded = true; break;
+            case BLOCK: p->isGrounded = 1; break;
             /* case BLOCK: int h = (y & ~TILE_ROUND) -1; p->isGrounded = (y >= h); break; */
             /* case RING_V: */
             /* case RING_H: */
             case INVALID: TraceLog(LOG_DEBUG, "Player outside the map."); game_reset();
             default: break;
-            /* default: p->isGrounded = true; */
+            /* default: p->isGrounded = 1; */
         }
         i++;
     } while (!p->isGrounded && i < 3);
@@ -715,16 +714,16 @@ void GravityCalc(Player *p)
 {
     if (p->isGrounded) { /* When the bounce touches the bottom block/s */
         if (p->isJumping) {
-            p->isJumping     = false;
-            p->control->jump = false;    /* Cancel input button */
+            p->isJumping     = 0;
+            p->control->jump = 0;    /* Cancel input button */
         } else if (p->control->jump) {
             Jump(p);
         } else if (p->velocity.y > 5.0f) { /* Should bouncing */
             float factor = 0.6f;
             p->velocity.y *= -factor;
-            p->isJumping     = true;
-            p->isGrounded    = false;
-            p->control->jump = false;
+            p->isJumping     = 1;
+            p->isGrounded    = 0;
+            p->control->jump = 0;
         } else {
             p->velocity.y = 0;
             p->vsp        = 0;
@@ -732,7 +731,7 @@ void GravityCalc(Player *p)
     } else {
         if (p->isJumping) {
             if (!p->control->jump) {
-                p->isJumping = false;
+                p->isJumping = 0;
 
                 if (p->velocity.y < p->jumpRelease) {
                     p->velocity.y = p->jumpRelease;
@@ -758,8 +757,8 @@ void GravityCalc(Player *p)
 void Jump(Player *p)
 {
     p->velocity.y = p->jumpImpulse;
-    p->isJumping = true;
-    p->isGrounded = false;
+    p->isJumping = 1;
+    p->isGrounded = 0;
 }
 
 /* Detect and solve horizontal collision with block tiles */
@@ -767,7 +766,7 @@ void CollisionHorizontalBlocks(Player *p)
 {
     float dx = p->velocity.x*delta;
 
-    p->hitOnWall = false;
+    p->hitOnWall = 0;
 
     /* Get bounding box side offset */
     int side;
@@ -801,7 +800,7 @@ void CollisionHorizontalBlocks(Player *p)
             p->velocity.x = 0.0;
             p->hsp = 0.0;
 
-            p->hitOnWall = true;
+            p->hitOnWall = 1;
             return;
         /* case RING_V: */
         /*     Rectangle player_rect = { */
@@ -825,7 +824,7 @@ void CollisionHorizontalBlocks(Player *p)
         /*         p->velocity.x = 0.0; */
         /*         p->hsp = 0.0; */
 
-        /*         p->hitOnWall = true; */
+        /*         p->hitOnWall = 1; */
         /*         return; */
         /*     } */
         /*     break; */
@@ -846,7 +845,7 @@ void CollisionHorizontalBlocks(Player *p)
             };
 
             if (CheckCollisionRecs(spike_rectangle, player_rectangle)) {
-                s->player.was_deflated = true;
+                s->player.was_deflated = 1;
                 textures[TX_SMALL_BALL].width = s->player.width*0.8f;
             }
             break;
@@ -891,8 +890,8 @@ void CollisionVerticalBlocks(Player *p)
     /* Get vertical speed in pixels */
     /* int dy = (int)ttc_clampf(p->velocity.y*delta, -TILE_SIZE, TILE_SIZE); */
     int dy = (int)p->velocity.y*delta;
-    p->hitOnCeiling = false;
-    p->hitOnFloor = false;
+    p->hitOnCeiling = 0;
+    p->hitOnFloor = 0;
 
     /* Get bounding box side offset */
     int side = 0;
@@ -907,7 +906,7 @@ void CollisionVerticalBlocks(Player *p)
 
     int xpos[3];
 
-    uint8_t i = 0;
+    int i = 0;
     xpos[i++] = x;
     xpos[i++] = x + xl;
     xpos[i]   = x + xr;
@@ -928,10 +927,10 @@ void CollisionVerticalBlocks(Player *p)
             case BLOCK:
                 if (dy > 0) {
                     y = ((y_pos) & ~TILE_ROUND) - 1 - side;
-                    p->hitOnFloor = true;
+                    p->hitOnFloor = 1;
                 } else {
                     y = ((y_pos) & ~TILE_ROUND) + TILE_SIZE - side;
-                    p->hitOnCeiling = true;
+                    p->hitOnCeiling = 1;
                 }
 
                 p->position.y = (float)y;
@@ -956,7 +955,7 @@ void CollisionVerticalBlocks(Player *p)
 
                 if (CheckCollisionRecs(spike_rectangle, player_rectangle)) {
                     textures[TX_SMALL_BALL].height = s->player.height*0.8f;
-                    s->player.was_deflated = true;
+                    s->player.was_deflated = 1;
                 }
                 break;
             case RING_HOLE_H:

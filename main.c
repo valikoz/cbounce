@@ -1,19 +1,17 @@
 #include <stdio.h>
 #include <dlfcn.h>
 #include <raylib.h>
-#include <stdbool.h>
 
 #include "game.c"
 
 #ifndef GAME_SHARED              /* Build dynamic library. */
-
 #ifdef STATIC_BUILD
-#define reload_game() true
+#define reload_game() 1 > 0
 #else
 #define X(name, ret, ...) ret (*name)(__VA_ARGS__) = NULL;
 SHARED_FUNCTIONS
 #undef X
-bool reload_game()
+int reload_game()
 {
     const char *game_path = "./game.so";
     void *game = NULL;
@@ -23,19 +21,19 @@ bool reload_game()
     game = dlopen(game_path, RTLD_NOW);
     if (game == NULL) {
         fprintf(stderr, "ERROR: %s\n", dlerror());
-        return false;
+        return 0;
     }
 
 #define X(name, ...)                                    \
     name = dlsym(game, #name);                          \
     if (name == NULL) {                                 \
         fprintf(stderr, "ERROR: %s\n", dlerror());      \
-        return false;                                   \
+        return 0;                                       \
     }
     SHARED_FUNCTIONS
 #undef X
 
-    return true;
+    return 1;
 }
 #endif  /* STATIC_BUILD */
 

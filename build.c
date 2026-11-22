@@ -54,7 +54,7 @@ int main(int argc, char **argv)
         }
     }
 
-    if (1) {
+    if (0) {
         /* Static build. */
         strv_meta(cmd)->len = 0;
         strv_push(&cmd, "cc");
@@ -107,6 +107,7 @@ void cmd_append_cflags(char **cmd)
     strv_push(&cmd, "-Wall");
     strv_push(&cmd, "-Wextra");
     strv_push(&cmd, "-g");
+    strv_push(&cmd, "-std=c99");
     strv_push(&cmd, "-I/usr/local/include");
     strv_push(&cmd, "-L/usr/local/lib");
     strv_push(&cmd, "-I./raylib/raylib-6.2_linux_amd64/include");
