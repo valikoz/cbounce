@@ -1,45 +1,22 @@
-#include <stdio.h>
+#include <assert.h>
 #include <dlfcn.h>
-#include <raylib.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "game.c"
+#include "raylib.h"
+#include "raymath.h"
 
-#ifndef GAME_SHARED              /* Build dynamic library. */
-#ifdef STATIC_BUILD
-#define reload_game() 1 > 0
-#else
-#define X(name, ret, ...) ret (*name)(__VA_ARGS__) = NULL;
-SHARED_FUNCTIONS
-#undef X
-int reload_game()
-{
-    const char *game_path = "./game.so";
-    void *game = NULL;
-    if (game != NULL)
-        dlclose(game);
+#include "bounce.h"
+#ifndef DYNAMIC_LOADING
+#include "bounce.c"
+#endif /* DYNAMIC_LOADING */
 
-    game = dlopen(game_path, RTLD_NOW);
-    if (game == NULL) {
-        fprintf(stderr, "ERROR: %s\n", dlerror());
-        return 0;
-    }
-
-#define X(name, ...)                                    \
-    name = dlsym(game, #name);                          \
-    if (name == NULL) {                                 \
-        fprintf(stderr, "ERROR: %s\n", dlerror());      \
-        return 0;                                       \
-    }
-    SHARED_FUNCTIONS
-#undef X
-
-    return 1;
-}
-#endif  /* STATIC_BUILD */
-
+#ifndef SHARED_LIB
 int main(void)
 {
-    if (!reload_game()) return 1;
+    if (reload_game() == 0)
+        return 1;
 
     int factor        = 60;
     int screen_width  = factor*24; /* 96 px -> 24 px */
@@ -84,4 +61,33 @@ int main(void)
 
     return 0;
 }
-#endif /* !GAME_SHARED */
+
+#ifdef DYNAMIC_LOADING
+int reload_game()
+{
+    const char *game_path = "./libbounce.so";
+    void *game = NULL;
+    if (game != NULL)
+        dlclose(game);
+
+    game = dlopen(game_path, RTLD_NOW);
+    if (game == NULL) {
+        fprintf(stderr, "ERROR: %s\n", dlerror());
+        return 0;
+    }
+
+    #define X(name, ...)                                \
+    name = dlsym(game, #name);                          \
+    if (name == NULL) {                                 \
+        fprintf(stderr, "ERROR: %s\n", dlerror());      \
+        return 0;                                       \
+    }
+    SHARED_FUNCTIONS
+    #undef X
+
+    return 1;
+}
+#else
+int reload_game() { return 1; }
+#endif /* DYNAMIC_LOADING */
+#endif /* SHARED_LIB */

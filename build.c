@@ -4,8 +4,7 @@
 #include <sys/wait.h>
 #include <sys/errno.h>
 
-#define STRV_GROW_FACTOR 2
-#define STRV_INIT_MAXLEN 256
+#define DYNAMIC_LOADING 1
 
 typedef struct {
     int maxlen;
@@ -13,6 +12,8 @@ typedef struct {
     int itemsize;
 } meta_t;
 
+#define STRV_GROW_FACTOR 2
+#define STRV_INIT_MAXLEN 256
 #define strv_meta(strv) ((meta_t*)(strv) - 1)
 #define strv_free(strv) free(strv_meta(strv))
 void strv_init(char ***strvp, size_t n);
@@ -54,51 +55,39 @@ int main(int argc, char **argv)
         }
     }
 
-    if (0) {
-        /* Static build. */
-        strv_meta(cmd)->len = 0;
-        strv_push(&cmd, "cc");
-        strv_push(&cmd, "-o");
-        strv_push(&cmd, "./main");
-        strv_push(&cmd, "main.c");
-        /* strv_push(&cmd, "-static"); */
-        strv_push(&cmd, "-DSTATIC_BUILD");
-        cmd_append_cflags(cmd);
-        strv_push(&cmd, "-l:libraylib.a");
-        if (!cmd_exec_child(cmd))
-            return(1);
-        return 0;
-    }
-
-    /* Build the dll. */
-    strv_meta(cmd)->len = 0;
-    strv_push(&cmd, "cc");
-    strv_push(&cmd, "-o");
-    strv_push(&cmd, "./game.so");
-    strv_push(&cmd, "main.c");
-    strv_push(&cmd, "-DGAME_SHARED");
-    strv_push(&cmd, "-fPIC");
-    strv_push(&cmd, "-shared");
-    cmd_append_cflags(cmd);
-    strv_push(&cmd, "-lraylib");
-
-    if (!cmd_exec_child(cmd))
-        return(1);
-
     /* Build main executable. */
     strv_meta(cmd)->len = 0;
     strv_push(&cmd, "cc");
     strv_push(&cmd, "-o");
-    strv_push(&cmd, "./main");
+    strv_push(&cmd, "./bounce");
     strv_push(&cmd, "main.c");
-    strv_push(&cmd, "-Wl,-rpath=./");
+    if (DYNAMIC_LOADING) {
+        strv_push(&cmd, "-DDYNAMIC_LOADING");
+        strv_push(&cmd, "-Wl,-rpath=./");
+    }
     cmd_append_cflags(cmd);
-    strv_push(&cmd, "-lraylib");
-
+    strv_push(&cmd, "-l:libraylib.a");
     if (!cmd_exec_child(cmd))
         return(1);
 
-    /* strv_free(cmd); */
+    if (DYNAMIC_LOADING) {
+        /* Build dll. */
+        strv_meta(cmd)->len = 0;
+        strv_push(&cmd, "cc");
+        strv_push(&cmd, "-o");
+        strv_push(&cmd, "./libbounce.so");
+        strv_push(&cmd, "main.c");
+        strv_push(&cmd, "-DSHARED_LIB");
+        strv_push(&cmd, "-fPIC");
+        strv_push(&cmd, "-shared");
+        cmd_append_cflags(cmd);
+        strv_push(&cmd, "-lraylib");
+
+        if (!cmd_exec_child(cmd))
+            return(1);
+    }
+
+    strv_free(cmd);
     return 0;
 }
 
